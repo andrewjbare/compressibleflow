@@ -1,15 +1,16 @@
+function out = isentropic(gamma, inputName, inputValues, varargin)
 % Perfect gas isentropic flow relations
 % Functionality based on Compressible Aerodynamics Calculator
 % https://devenport.aoe.vt.edu/aoe3114/calc.html
 % Andrew Bare
-
+%
 % --Usage--
 % isentropic(gamma, inputName, inputValues[, outputName])
-
+% 
 % --Arguments--
 % gamma: Constant ratio of specific heats
 % inputName: One of:
-%   mach - Mach number
+%   M - Mach number
 %   TT0 - Total temperature ratio
 %   PP0 - Total pressure ratio
 %   RR0 - Total density ratio
@@ -17,34 +18,28 @@
 %   AAsub - Area ratio (subsonic)
 %   mu - Mach angle (degrees)
 %   nu - Prandtl-Meyer angle (degrees)
-% inputValues: Value of inputName, may be scalar, row or column vector
+% inputValues: Values of inputName, may be scalar, row or column vector
 % outputName (optional): Name of output; see below for output names
-
+%
 % --Output--
-% If outputName is not provided, out is a table of values in the order:
-% Value (outputName)
-% Mach number (Mach)
-% Mach angle (mu)
-% Prandtl-Meyer angle (PM)
-% Stagnation (total) pressure ratio p/p_0 (PP0)
-% Stagnation (total) density ratio rho/rho_0 (RR0)
-% Stagnation (total) temperature ratio T/T_0 (TT0)
-% Sonic (critical) pressure ratio P/P* (PPs)
-% Sonic (critical) density ratio rho/rho* (RRs)
-% Sonic (critical) temperature ratio T/T* (TTs)
-% Area ratio A/A* (AAs)
+% If outputName is not provided, output is a table of values in the order:
+%   Value (outputName)
+%   Mach number (M)
+%   Mach angle (mu)
+%   Prandtl-Meyer angle (PM)
+%   Stagnation (total) pressure ratio p/p_0 (PP0)
+%   Stagnation (total) density ratio rho/rho_0 (RR0)
+%   Stagnation (total) temperature ratio T/T_0 (TT0)
+%   Sonic (critical) pressure ratio P/P* (PPs)
+%   Sonic (critical) density ratio rho/rho* (RRs)
+%   Sonic (critical) temperature ratio T/T* (TTs)
+%   Area ratio A/A* (AAs)
 % If outputName is provided, return only a vertical array of the
 % value(s) of outputName in order of inputValues (in parentheses above)
-
-function out = isentropic(gamma, inputName, inputValues, varargin)
-    % Possible outputs from function
-    possibleOutputs = ["mach"; "TT0"; "PP0"; "RR0"; "AAsup";...
-        "AAsub"; "mu"; "nu"];
 
     if gamma <= 1
         error('gamma must be greater than 1');
     end
-
     [inputHeight, inputWidth] = size(inputValues);
     if inputHeight == 1 && inputWidth ~= 1
         inputValues = inputValues';
@@ -52,19 +47,18 @@ function out = isentropic(gamma, inputName, inputValues, varargin)
     if inputHeight ~= 1 && inputWidth ~= 1
         error('Matrix of inputValue not accepted.');
     end
-
     if any(inputValues <= 0)
         error('InputValue must only contain positive values');
     end
+    possibleInputs = ["M"; "TT0"; "PP0"; "RR0"; "AAsup";...
+        "AAsub"; "mu"; "nu"];
+    if isempty(intersect(possibleInputs,inputName))
+        error('inputName invalid.');
+    end
 
     % Set up table of values to return
-    outputs = possibleOutputs;
-    outputs(outputs == inputName) = [];
-    if length(outputs) == length(possibleOutputs)
-        error('inputName invalid; only specify one of valid names.');
-    end
     switch inputName
-        case "mach"
+        case "M"
             outputTable = tableFromMach(gamma, inputValues);
         case "TT0"
             if any(inputValues >= 1)
@@ -112,6 +106,9 @@ function out = isentropic(gamma, inputName, inputValues, varargin)
         otherwise
             error('InputName invalid.');
     end
+
+    % For any inputName besides mach, get Mach number and then use the Mach
+    % number formulas to compute the rest of the values.
 
     nVarargs = length(varargin);
     if nVarargs == 0
